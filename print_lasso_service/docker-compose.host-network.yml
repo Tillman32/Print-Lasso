@@ -1,4 +1,0 @@
-services:
-  print-lasso-service:
-    network_mode: host
-    ports: []
