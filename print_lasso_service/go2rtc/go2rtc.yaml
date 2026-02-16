@@ -1,5 +1,7 @@
 api:
   listen: ":1984"
+  # Allow Flutter web (different localhost/LAN origins) to read MJPEG relay streams.
+  origin: "*"
 
 rtsp:
   listen: ":8554"
