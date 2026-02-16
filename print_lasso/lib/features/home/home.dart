@@ -249,7 +249,10 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
-      final DiscoverResponse response = await apiClient.discoverPrinters();
+      DiscoverResponse response = await apiClient.discoverPrinters();
+      if (response.printers.isEmpty) {
+        response = await apiClient.discoverPrinters(includeAll: true);
+      }
       if (!mounted) {
         return;
       }

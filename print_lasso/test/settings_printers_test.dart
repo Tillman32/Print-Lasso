@@ -48,6 +48,67 @@ void main() {
     expect(find.text('No printers have been added yet.'), findsNothing);
     expect(find.text('Added'), findsOneWidget);
   });
+
+  testWidgets(
+    'Refresh Added shows compatibility message when list endpoint is missing',
+    (WidgetTester tester) async {
+      final _MissingListEndpointApiClient fakeApiClient =
+          _MissingListEndpointApiClient();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SettingsPage(
+            activeService: _testServiceConfig(),
+            apiClientFactory: (_) => fakeApiClient,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      expect(
+        find.text(
+          'This service does not support printer listing yet. Update the Print Lasso service to use Refresh Added.',
+        ),
+        findsOneWidget,
+      );
+      expect(find.text('No printers have been added yet.'), findsOneWidget);
+    },
+  );
+
+  testWidgets(
+    'Discover Printers retries with include_all when first pass is empty',
+    (WidgetTester tester) async {
+      final _FallbackDiscoverApiClient fakeApiClient =
+          _FallbackDiscoverApiClient();
+
+      await tester.pumpWidget(
+        MaterialApp(
+          home: SettingsPage(
+            activeService: _testServiceConfig(),
+            apiClientFactory: (_) => fakeApiClient,
+          ),
+        ),
+      );
+      await tester.pumpAndSettle();
+
+      await tester.tap(find.text('Discover Printers'));
+      await tester.pumpAndSettle();
+
+      expect(fakeApiClient.discoverCalls, 2);
+      expect(find.text('Fallback Printer'), findsOneWidget);
+    },
+  );
+}
+
+ServiceConfig _testServiceConfig() {
+  return ServiceConfig(
+    instanceName: 'Test Service',
+    host: '127.0.0.1',
+    port: 9000,
+    apiPath: '/api/v1',
+    baseApiUrl: 'http://127.0.0.1:9000/api/v1',
+    lastSeenAt: DateTime.now(),
+  );
 }
 
 class _FakePrintLassoApiClient extends PrintLassoApiClient {
@@ -105,5 +166,39 @@ class _FakePrintLassoApiClient extends PrintLassoApiClient {
     );
     addedPrinters.add(created);
     return created;
+  }
+}
+
+class _MissingListEndpointApiClient extends _FakePrintLassoApiClient {
+  @override
+  Future<List<PrinterRecord>> listPrinters() async {
+    throw const PrintLassoApiException(
+      'Request failed with status 404',
+      statusCode: 404,
+    );
+  }
+}
+
+class _FallbackDiscoverApiClient extends _FakePrintLassoApiClient {
+  int discoverCalls = 0;
+
+  @override
+  Future<DiscoverResponse> discoverPrinters({bool includeAll = false}) async {
+    discoverCalls++;
+    if (!includeAll) {
+      return const DiscoverResponse(count: 0, printers: <DiscoveredPrinter>[]);
+    }
+    return const DiscoverResponse(
+      count: 1,
+      printers: <DiscoveredPrinter>[
+        DiscoveredPrinter(
+          serialNumber: 'SN-2000',
+          name: 'Fallback Printer',
+          model: 'P1S',
+          ipAddress: '192.168.1.55',
+          port: 80,
+        ),
+      ],
+    );
   }
 }

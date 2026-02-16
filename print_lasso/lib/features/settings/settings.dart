@@ -65,7 +65,10 @@ class _SettingsPageState extends State<SettingsPage> {
     });
 
     try {
-      final DiscoverResponse response = await apiClient.discoverPrinters();
+      DiscoverResponse response = await apiClient.discoverPrinters();
+      if (response.printers.isEmpty) {
+        response = await apiClient.discoverPrinters(includeAll: true);
+      }
       if (!mounted) {
         return;
       }
@@ -117,7 +120,10 @@ class _SettingsPageState extends State<SettingsPage> {
         return;
       }
       setState(() {
-        _errorMessage = error.message;
+        _addedPrinters = <PrinterRecord>[];
+        _errorMessage = error.statusCode == 404
+            ? 'This service does not support printer listing yet. Update the Print Lasso service to use Refresh Added.'
+            : error.message;
       });
     } finally {
       if (mounted) {
