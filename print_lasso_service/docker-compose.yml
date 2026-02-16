@@ -1,7 +1,6 @@
 services:
   print-lasso-service:
-    networks:
-      - host
+    network_mode: host
     build:
       context: .
       dockerfile: Dockerfile
