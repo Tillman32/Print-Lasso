@@ -41,3 +41,22 @@ def test_parse_bambu_response_accepts_only_bambu_st() -> None:
     assert parsed_bambu["name"] == "P1S"
     assert parsed_bambu["model"] == "P1S"
     assert parsed_bambu["ip_address"] == "192.168.1.67"
+
+
+def test_parse_bambu_response_accepts_bambu_usn_with_ssdp_all() -> None:
+    headers = {
+        "st": "ssdp:all",
+        "usn": "uuid:ABCDEF456::urn:bambulab-com:device:3dprinter:1",
+        "server": "Bambu Lab",
+        "location": "http://192.168.1.88/description.xml",
+        "devname.bambu.com": "X1C",
+        "devmodel.bambu.com": "X1 Carbon",
+    }
+
+    parsed = _parse_bambu_response(headers, "192.168.1.88")
+
+    assert parsed is not None
+    assert parsed["serial_number"] == "ABCDEF456"
+    assert parsed["name"] == "X1C"
+    assert parsed["model"] == "X1 Carbon"
+    assert parsed["ip_address"] == "192.168.1.88"

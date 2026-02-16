@@ -22,6 +22,14 @@ uvicorn app.main:app --host 0.0.0.0 --port 9000
 docker compose up --build -d
 ```
 
+For LAN SSDP printer discovery on Linux hosts, use host networking:
+```bash
+docker compose -f docker-compose.yml -f docker-compose.host-network.yml up --build -d
+```
+
+Note: Docker bridge networking often blocks multicast/broadcast discovery traffic.
+On Docker Desktop (macOS/Windows), run the service directly on the host for reliable discovery.
+
 View logs:
 ```bash
 docker compose logs -f

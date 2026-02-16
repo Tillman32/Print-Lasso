@@ -26,3 +26,6 @@ docker compose down
 - No authentication for MVP (trusted LAN).
 - Cross-platform service wrappers planned pre-release.
 - Service advertises itself via mDNS as `_print-lasso._tcp.local` for LAN discovery.
+- If you run the service in Docker and need LAN printer discovery, use host networking
+  on Linux: `docker compose -f docker-compose.yml -f docker-compose.host-network.yml up -d --build`.
+  Docker bridge networks often block/limit multicast and broadcast SSDP traffic.
