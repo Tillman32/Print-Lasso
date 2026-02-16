@@ -1,0 +1,16 @@
+services:
+  print-lasso-service:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: print-lasso-service
+    environment:
+      PRINT_LASSO_SQLITE_FILE: /data/print_lasso.db
+    ports:
+      - "${PRINT_LASSO_PORT:-9000}:9000"
+    volumes:
+      - print_lasso_data:/data
+    restart: unless-stopped
+
+volumes:
+  print_lasso_data:
