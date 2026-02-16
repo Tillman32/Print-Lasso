@@ -76,7 +76,7 @@ void main() {
   );
 
   testWidgets(
-    'Discover Printers retries with include_all when first pass is empty',
+    'Discover Printers does not fallback to include_all when empty',
     (WidgetTester tester) async {
       final _FallbackDiscoverApiClient fakeApiClient =
           _FallbackDiscoverApiClient();
@@ -94,8 +94,8 @@ void main() {
       await tester.tap(find.text('Discover Printers'));
       await tester.pumpAndSettle();
 
-      expect(fakeApiClient.discoverCalls, 2);
-      expect(find.text('Fallback Printer'), findsOneWidget);
+      expect(fakeApiClient.discoverCalls, 1);
+      expect(find.text('No printers discovered yet.'), findsOneWidget);
     },
   );
 }

@@ -22,6 +22,15 @@ uvicorn app.main:app --host 0.0.0.0 --port 9000
 docker compose up --build -d
 ```
 
+This starts:
+- Print Lasso API: `http://localhost:9000`
+- go2rtc relay API/UI: `http://localhost:1984`
+- go2rtc RTSP: `rtsp://localhost:8554`
+- go2rtc WebRTC: `localhost:8555`
+
+The Flutter printers camera view uses go2rtc to relay Bambu RTSP feeds to MJPEG.
+By default it targets `http://<active-service-host>:1984`.
+
 For LAN SSDP printer discovery on Linux hosts, use host networking:
 ```bash
 docker compose -f docker-compose.yml -f docker-compose.host-network.yml up --build -d
@@ -47,4 +56,14 @@ curl -X POST http://localhost:9000/api/v1/discover
 curl -X POST http://localhost:9000/api/v1/printer/add \
   -H "Content-Type: application/json" \
   -d '{"serial_number":"SN-1","name":"Lab Printer"}'
+```
+
+Check go2rtc health/UI:
+```bash
+curl http://localhost:1984/
+```
+
+Optional relay test (replace `...` with your encoded RTSP URL):
+```bash
+curl -I "http://localhost:1984/api/stream.mjpeg?src=rtsps%3A%2F%2Fbblp%3A...%40192.168.1.50%3A322%2Fstreaming%2Flive%2F1"
 ```

@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key, this.onHome, this.onSettings});
+  const AppDrawer({super.key, this.onHome, this.onPrinters, this.onSettings});
 
   final VoidCallback? onHome;
+  final VoidCallback? onPrinters;
   final VoidCallback? onSettings;
 
   @override
@@ -33,6 +34,14 @@ class AppDrawer extends StatelessWidget {
             onTap: () {
               Navigator.pop(context);
               // Navigate to print jobs page
+            },
+          ),
+          ListTile(
+            leading: const Icon(Icons.print_outlined),
+            title: const Text('Printers'),
+            onTap: () {
+              Navigator.pop(context);
+              onPrinters?.call();
             },
           ),
           ListTile(

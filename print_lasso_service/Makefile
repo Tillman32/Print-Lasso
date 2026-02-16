@@ -1,6 +1,7 @@
 PYTHON := python3
 VENV := .venv
 VENV_BIN := $(VENV)/bin
+VENV_PY := $(VENV_BIN)/python
 PIP := $(VENV_BIN)/pip
 PYTEST := $(VENV_BIN)/pytest
 UVICORN := $(VENV_BIN)/uvicorn
@@ -16,15 +17,16 @@ help:
 
 venv:
 	$(PYTHON) -m venv $(VENV)
+	$(VENV_PY) -m ensurepip --upgrade
+	$(VENV_PY) -m pip install --upgrade pip
 
 install: venv
-	$(PIP) install --upgrade pip
-	$(PIP) install -r requirements.txt
+	$(VENV_PY) -m pip install -r requirements.txt
 
 setup: install
 
-run:
-	$(UVICORN) app.main:app --host 0.0.0.0 --port 9000
+run: install
+	$(VENV_PY) -m uvicorn app.main:app --host 0.0.0.0 --port 9000
 
 test:
 	$(PYTEST) -q

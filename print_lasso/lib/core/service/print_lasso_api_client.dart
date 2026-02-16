@@ -14,6 +14,8 @@ class PrintLassoApiException implements Exception {
 }
 
 class PrintLassoApiClient {
+  static const Duration _discoverTimeout = Duration(seconds: 30);
+
   PrintLassoApiClient({
     required String baseApiUrl,
     Duration timeout = const Duration(seconds: 5),
@@ -41,6 +43,11 @@ class PrintLassoApiClient {
     final Map<String, dynamic> responseJson = await _postJson(
       '/discover',
       queryParameters: <String, dynamic>{'include_all': includeAll},
+      options: Options(
+        connectTimeout: _discoverTimeout,
+        sendTimeout: _discoverTimeout,
+        receiveTimeout: _discoverTimeout,
+      ),
     );
     return DiscoverResponse.fromJson(responseJson);
   }
@@ -109,12 +116,14 @@ class PrintLassoApiClient {
     String path, {
     Object? data,
     Map<String, dynamic>? queryParameters,
+    Options? options,
   }) async {
     try {
       final Response<dynamic> response = await _dio.post<dynamic>(
         path,
         data: data,
         queryParameters: queryParameters,
+        options: options,
       );
       return _asJsonMap(response.data);
     } on DioException catch (error) {

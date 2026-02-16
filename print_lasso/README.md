@@ -28,3 +28,17 @@ API client supports:
 - `DELETE /printer/remove`
 - `GET /printer/view`
 - `GET /printer/list`
+
+## Camera Relay (go2rtc)
+
+For Bambu RTSP camera feeds, run go2rtc alongside the service (included in
+`print_lasso_service/docker-compose.yml`).
+
+Default app behavior:
+- If `GO2RTC_BASE_URL` is provided, the app uses it.
+- Otherwise it uses `http://<active-service-host>:1984`.
+
+Override example:
+```bash
+flutter run --dart-define=GO2RTC_BASE_URL=http://192.168.1.50:1984
+```

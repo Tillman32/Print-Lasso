@@ -5,6 +5,7 @@ import '../../core/service/print_lasso_api_client.dart';
 import '../../core/service/print_lasso_models.dart';
 import '../../core/service/service_config.dart';
 import '../../core/widgets/app_drawer.dart';
+import '../printers/printers.dart';
 
 class SettingsPage extends StatefulWidget {
   const SettingsPage({
@@ -36,7 +37,10 @@ class _SettingsPageState extends State<SettingsPage> {
     if (activeService != null) {
       _apiClient =
           widget.apiClientFactory?.call(activeService.baseApiUrl) ??
-          PrintLassoApiClient(baseApiUrl: activeService.baseApiUrl);
+          PrintLassoApiClient(
+            baseApiUrl: activeService.baseApiUrl,
+            timeout: const Duration(seconds: 30),
+          );
       _loadAddedPrinters();
     }
   }
@@ -65,10 +69,7 @@ class _SettingsPageState extends State<SettingsPage> {
     });
 
     try {
-      DiscoverResponse response = await apiClient.discoverPrinters();
-      if (response.printers.isEmpty) {
-        response = await apiClient.discoverPrinters(includeAll: true);
-      }
+      final DiscoverResponse response = await apiClient.discoverPrinters();
       if (!mounted) {
         return;
       }
@@ -203,6 +204,14 @@ class _SettingsPageState extends State<SettingsPage> {
         onHome: () => Navigator.of(
           context,
         ).popUntil((Route<dynamic> route) => route.isFirst),
+        onPrinters: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (BuildContext context) =>
+                  PrintersPage(activeService: activeService),
+            ),
+          );
+        },
       ),
       body: ListView(
         padding: const EdgeInsets.all(Constants.defaultPadding),

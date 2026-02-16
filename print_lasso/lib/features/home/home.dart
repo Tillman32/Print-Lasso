@@ -8,6 +8,7 @@ import '../../core/service/service_config.dart';
 import '../../core/service/service_config_repository.dart';
 import '../../core/service/service_discovery_client.dart';
 import '../../core/widgets/app_drawer.dart';
+import '../printers/printers.dart';
 import '../settings/settings.dart';
 
 class HomePage extends StatefulWidget {
@@ -34,6 +35,8 @@ class _HomePageState extends State<HomePage> {
   ServiceConfig? _activeService;
   List<ServiceCandidate> _discoveredServices = <ServiceCandidate>[];
   List<DiscoveredPrinter> _printers = <DiscoveredPrinter>[];
+  final Set<String> _addedPrinterSerials = <String>{};
+  final Set<String> _addingPrinterSerials = <String>{};
   String? _errorMessage;
   bool _isBootstrapping = true;
   bool _isDiscoveringServices = false;
@@ -179,17 +182,22 @@ class _HomePageState extends State<HomePage> {
       _errorMessage = null;
     });
 
-    final PrintLassoApiClient nextClient = PrintLassoApiClient(
+    final PrintLassoApiClient probeClient = PrintLassoApiClient(
       baseApiUrl: candidate.baseApiUrl,
       timeout: const Duration(seconds: 3),
     );
 
     try {
-      final ServiceStatus status = await nextClient.getStatus();
+      final ServiceStatus status = await probeClient.getStatus();
       if (status.status.toLowerCase() != 'ok') {
         throw const PrintLassoApiException('Service health check failed');
       }
 
+      final PrintLassoApiClient nextClient = PrintLassoApiClient(
+        baseApiUrl: candidate.baseApiUrl,
+        timeout: const Duration(seconds: 30),
+      );
+      final Set<String> addedSerials = await _loadAddedSerials(nextClient);
       _apiClient?.dispose();
       _apiClient = nextClient;
 
@@ -203,13 +211,15 @@ class _HomePageState extends State<HomePage> {
       }
       setState(() {
         _activeService = config;
+        _addedPrinterSerials
+          ..clear()
+          ..addAll(addedSerials);
         if (clearPrinters) {
           _printers = <DiscoveredPrinter>[];
         }
       });
       return true;
     } on PrintLassoApiException catch (error) {
-      nextClient.dispose();
       if (!mounted) {
         return false;
       }
@@ -220,6 +230,7 @@ class _HomePageState extends State<HomePage> {
       }
       return false;
     } finally {
+      probeClient.dispose();
       if (mounted) {
         setState(() {
           _isConnectingService = false;
@@ -249,10 +260,7 @@ class _HomePageState extends State<HomePage> {
     });
 
     try {
-      DiscoverResponse response = await apiClient.discoverPrinters();
-      if (response.printers.isEmpty) {
-        response = await apiClient.discoverPrinters(includeAll: true);
-      }
+      final DiscoverResponse response = await apiClient.discoverPrinters();
       if (!mounted) {
         return;
       }
@@ -275,6 +283,77 @@ class _HomePageState extends State<HomePage> {
     }
   }
 
+  Future<Set<String>> _loadAddedSerials(PrintLassoApiClient apiClient) async {
+    try {
+      final List<PrinterRecord> printers = await apiClient.listPrinters();
+      return printers
+          .map((PrinterRecord printer) => printer.serialNumber)
+          .toSet();
+    } on PrintLassoApiException catch (error) {
+      if (error.statusCode == 404) {
+        return <String>{};
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _addPrinterFromDiscovery(DiscoveredPrinter printer) async {
+    final PrintLassoApiClient? apiClient = _apiClient;
+    if (apiClient == null) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _errorMessage = 'No Print Lasso service is connected.';
+      });
+      return;
+    }
+    if (_addedPrinterSerials.contains(printer.serialNumber) ||
+        _addingPrinterSerials.contains(printer.serialNumber)) {
+      return;
+    }
+
+    setState(() {
+      _addingPrinterSerials.add(printer.serialNumber);
+      _errorMessage = null;
+    });
+
+    try {
+      final PrinterRecord created = await apiClient.addPrinter(
+        AddPrinterRequest(
+          serialNumber: printer.serialNumber,
+          name: printer.name.isEmpty ? printer.serialNumber : printer.name,
+          model: printer.model.isEmpty ? null : printer.model,
+          ipAddress: printer.ipAddress.isEmpty ? null : printer.ipAddress,
+          port: printer.port ?? 0,
+        ),
+      );
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        _addedPrinterSerials.add(created.serialNumber);
+      });
+    } on PrintLassoApiException catch (error) {
+      if (!mounted) {
+        return;
+      }
+      setState(() {
+        if (error.statusCode == 409) {
+          _addedPrinterSerials.add(printer.serialNumber);
+        } else {
+          _errorMessage = error.message;
+        }
+      });
+    } finally {
+      if (mounted) {
+        setState(() {
+          _addingPrinterSerials.remove(printer.serialNumber);
+        });
+      }
+    }
+  }
+
   Future<void> _forgetService() async {
     _apiClient?.dispose();
     _apiClient = null;
@@ -286,6 +365,8 @@ class _HomePageState extends State<HomePage> {
     setState(() {
       _activeService = null;
       _printers = <DiscoveredPrinter>[];
+      _addedPrinterSerials.clear();
+      _addingPrinterSerials.clear();
       _errorMessage = null;
     });
   }
@@ -342,6 +423,14 @@ class _HomePageState extends State<HomePage> {
     return Scaffold(
       appBar: AppBar(title: const Text(Constants.appTitle)),
       drawer: AppDrawer(
+        onPrinters: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (BuildContext context) =>
+                  PrintersPage(activeService: _activeService),
+            ),
+          );
+        },
         onSettings: () {
           Navigator.of(context).push(
             MaterialPageRoute<void>(
@@ -388,6 +477,9 @@ class _HomePageState extends State<HomePage> {
                 _DiscoveredPrintersCard(
                   printers: _printers,
                   isLoading: _isDiscoveringPrinters,
+                  addedSerials: _addedPrinterSerials,
+                  addingSerials: _addingPrinterSerials,
+                  onAdd: _addPrinterFromDiscovery,
                 ),
               ],
             ),
@@ -561,10 +653,16 @@ class _DiscoveredPrintersCard extends StatelessWidget {
   const _DiscoveredPrintersCard({
     required this.printers,
     required this.isLoading,
+    required this.addedSerials,
+    required this.addingSerials,
+    required this.onAdd,
   });
 
   final List<DiscoveredPrinter> printers;
   final bool isLoading;
+  final Set<String> addedSerials;
+  final Set<String> addingSerials;
+  final Future<void> Function(DiscoveredPrinter printer) onAdd;
 
   @override
   Widget build(BuildContext context) {
@@ -584,8 +682,15 @@ class _DiscoveredPrintersCard extends StatelessWidget {
             else if (printers.isEmpty)
               const Text('No printers discovered yet.')
             else
-              ...printers.map(
-                (DiscoveredPrinter printer) => ListTile(
+              ...printers.map((DiscoveredPrinter printer) {
+                final bool isAdded = addedSerials.contains(
+                  printer.serialNumber,
+                );
+                final bool isAdding = addingSerials.contains(
+                  printer.serialNumber,
+                );
+
+                return ListTile(
                   contentPadding: EdgeInsets.zero,
                   leading: const Icon(Icons.print),
                   title: Text(
@@ -597,8 +702,22 @@ class _DiscoveredPrintersCard extends StatelessWidget {
                     'IP: ${printer.ipAddress}  Port: ${printer.port ?? 0}',
                   ),
                   isThreeLine: true,
-                ),
-              ),
+                  trailing: isAdded
+                      ? const Chip(label: Text('Added'))
+                      : ElevatedButton(
+                          onPressed: isAdding ? null : () => onAdd(printer),
+                          child: isAdding
+                              ? const SizedBox(
+                                  width: 16,
+                                  height: 16,
+                                  child: CircularProgressIndicator(
+                                    strokeWidth: 2,
+                                  ),
+                                )
+                              : const Text('Add'),
+                        ),
+                );
+              }),
           ],
         ),
       ),

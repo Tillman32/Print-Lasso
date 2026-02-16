@@ -11,6 +11,10 @@ class Constants {
   static const String mdnsServiceType = '_print-lasso._tcp.local.';
   static const String mdnsServiceTypeNoTrailingDot = '_print-lasso._tcp.local';
   static const Duration requestTimeout = Duration(seconds: 30);
+  static const String go2rtcBaseUrl = String.fromEnvironment(
+    'GO2RTC_BASE_URL',
+    defaultValue: '',
+  );
 
   // UI Constants
   static const double defaultPadding = 16.0;

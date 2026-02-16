@@ -12,6 +12,8 @@ BAMBU_ST = "urn:bambulab-com:device:3dprinter:1"
 BAMBU_ST_FALLBACK = "ssdp:all"
 BAMBU_PORTS = (1900, 2021, 1990)
 DISCOVERY_TIMEOUT_SECONDS = 6.0
+RESULT_SETTLE_SECONDS = 0.8
+MIN_COLLECTION_WINDOW_SECONDS = 1.5
 
 
 def build_msearch_payload(port: int, *, st: str = BAMBU_ST) -> bytes:
@@ -133,6 +135,8 @@ def _send_probes(sock: socket.socket, search_targets: Iterable[str]) -> None:
 
 def _discover_on_socket(timeout_seconds: float, include_all: bool) -> List[Dict[str, str]]:
     printers: Dict[str, Dict[str, str]] = {}
+    first_result_at: float | None = None
+    last_result_at: float | None = None
     passive_listeners: List[socket.socket] = []
     with _open_discovery_socket() as sock:
         listener_sockets: List[socket.socket] = [sock]
@@ -193,11 +197,29 @@ def _discover_on_socket(timeout_seconds: float, include_all: bool) -> List[Dict[
                             "location": parsed_headers.get("location", ""),
                             "server": parsed_headers.get("server", ""),
                         }
+                        now = time.monotonic()
+                        first_result_at = first_result_at or now
+                        last_result_at = now
                         continue
 
                     parsed = _parse_bambu_response(parsed_headers, addr[0])
                     if parsed and parsed.get("serial_number"):
                         printers[parsed["serial_number"]] = parsed
+                        now = time.monotonic()
+                        first_result_at = first_result_at or now
+                        last_result_at = now
+
+                if (
+                    printers
+                    and first_result_at is not None
+                    and last_result_at is not None
+                ):
+                    now = time.monotonic()
+                    if (
+                        (now - first_result_at) >= MIN_COLLECTION_WINDOW_SECONDS
+                        and (now - last_result_at) >= RESULT_SETTLE_SECONDS
+                    ):
+                        break
         finally:
             for passive_sock in passive_listeners:
                 with suppress(OSError):
