@@ -77,6 +77,19 @@ class PrintLassoApiClient {
     return PrinterRecord.fromJson(responseJson);
   }
 
+  Future<List<PrinterRecord>> listPrinters() async {
+    try {
+      final Response<dynamic> response = await _dio.get<dynamic>(
+        '/printer/list',
+      );
+      return _asJsonList(response.data)
+          .map((Map<String, dynamic> item) => PrinterRecord.fromJson(item))
+          .toList();
+    } on DioException catch (error) {
+      throw _mapDioError(error);
+    }
+  }
+
   Future<Map<String, dynamic>> _getJson(
     String path, {
     Map<String, dynamic>? queryParameters,
@@ -141,6 +154,16 @@ class PrintLassoApiClient {
       return data.cast<String, dynamic>();
     }
     throw const PrintLassoApiException('Unexpected response format');
+  }
+
+  List<Map<String, dynamic>> _asJsonList(Object? data) {
+    if (data is! List) {
+      throw const PrintLassoApiException('Unexpected response format');
+    }
+    return data
+        .whereType<Map>()
+        .map((Map item) => item.cast<String, dynamic>())
+        .toList();
   }
 
   PrintLassoApiException _mapDioError(DioException error) {

@@ -20,6 +20,7 @@ docker compose down
 - `PUT /api/v1/printer/edit`
 - `DELETE /api/v1/printer/remove`
 - `GET /api/v1/printer/view?serial_number=...`
+- `GET /api/v1/printer/list`
 
 ## Notes
 - MVP runs as a foreground process.

@@ -27,3 +27,4 @@ API client supports:
 - `PUT /printer/edit`
 - `DELETE /printer/remove`
 - `GET /printer/view`
+- `GET /printer/list`

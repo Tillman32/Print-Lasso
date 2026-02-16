@@ -49,6 +49,11 @@ def test_printer_crud_flow() -> None:
         assert view_resp.status_code == 200
         assert view_resp.json()["name"] == "Bench Printer"
 
+        list_resp = startup_client.get("/api/v1/printer/list")
+        assert list_resp.status_code == 200
+        assert len(list_resp.json()) == 1
+        assert list_resp.json()[0]["serial_number"] == "SN-1000"
+
         edit_resp = startup_client.put(
             "/api/v1/printer/edit",
             json={"serial_number": "SN-1000", "name": "Renamed Printer"},
@@ -62,6 +67,10 @@ def test_printer_crud_flow() -> None:
             json={"serial_number": "SN-1000"},
         )
         assert delete_resp.status_code == 200
+
+        empty_list_resp = startup_client.get("/api/v1/printer/list")
+        assert empty_list_resp.status_code == 200
+        assert empty_list_resp.json() == []
 
         missing_resp = startup_client.get("/api/v1/printer/view", params={"serial_number": "SN-1000"})
         assert missing_resp.status_code == 404

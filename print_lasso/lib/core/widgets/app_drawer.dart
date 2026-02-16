@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 
 class AppDrawer extends StatelessWidget {
-  const AppDrawer({super.key});
+  const AppDrawer({super.key, this.onHome, this.onSettings});
+
+  final VoidCallback? onHome;
+  final VoidCallback? onSettings;
 
   @override
   Widget build(BuildContext context) {
@@ -20,8 +23,8 @@ class AppDrawer extends StatelessWidget {
             leading: const Icon(Icons.home),
             title: const Text('Home'),
             onTap: () {
-              Navigator.pop(context); // Close drawer
-              // Navigate to home if needed
+              Navigator.pop(context);
+              onHome?.call();
             },
           ),
           ListTile(
@@ -37,7 +40,7 @@ class AppDrawer extends StatelessWidget {
             title: const Text('Settings'),
             onTap: () {
               Navigator.pop(context);
-              // Navigate to settings page
+              onSettings?.call();
             },
           ),
         ],

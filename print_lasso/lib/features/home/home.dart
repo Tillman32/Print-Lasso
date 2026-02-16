@@ -8,6 +8,7 @@ import '../../core/service/service_config.dart';
 import '../../core/service/service_config_repository.dart';
 import '../../core/service/service_discovery_client.dart';
 import '../../core/widgets/app_drawer.dart';
+import '../settings/settings.dart';
 
 class HomePage extends StatefulWidget {
   const HomePage({
@@ -337,7 +338,16 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text(Constants.appTitle)),
-      drawer: const AppDrawer(),
+      drawer: AppDrawer(
+        onSettings: () {
+          Navigator.of(context).push(
+            MaterialPageRoute<void>(
+              builder: (BuildContext context) =>
+                  SettingsPage(activeService: _activeService),
+            ),
+          );
+        },
+      ),
       body: _isBootstrapping
           ? const Center(child: CircularProgressIndicator())
           : ListView(

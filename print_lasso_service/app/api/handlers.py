@@ -72,3 +72,8 @@ def view_printer(serial_number: str = Query(...), session: Session = Depends(get
     if not printer:
         raise HTTPException(status_code=404, detail="Printer not found")
     return printer
+
+
+@router.get("/printer/list", response_model=list[PrinterRead])
+def list_printers(session: Session = Depends(get_session)) -> list[Printer]:
+    return list(session.exec(select(Printer).order_by(Printer.name, Printer.serial_number)))
