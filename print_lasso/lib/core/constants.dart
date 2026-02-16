@@ -8,7 +8,7 @@ class Constants {
 
   // API & Network
   static const String defaultApiPath = '/api/v1';
-  static const String mdnsServiceType = '_print-lasso._tcp.local';
+  static const String mdnsServiceType = '_print-lasso._tcp.local.';
   static const String mdnsServiceTypeNoTrailingDot = '_print-lasso._tcp.local';
   static const Duration requestTimeout = Duration(seconds: 30);
 

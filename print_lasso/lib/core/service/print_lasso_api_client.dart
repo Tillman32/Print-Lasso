@@ -22,7 +22,6 @@ class PrintLassoApiClient {
            baseUrl: baseApiUrl,
            connectTimeout: timeout,
            receiveTimeout: timeout,
-           sendTimeout: timeout,
            responseType: ResponseType.json,
          ),
        );
