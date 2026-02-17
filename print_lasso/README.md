@@ -37,6 +37,8 @@ For Bambu RTSP camera feeds, run go2rtc alongside the service (included in
 Default app behavior:
 - If `GO2RTC_BASE_URL` is provided, the app uses it.
 - Otherwise it uses `http://<active-service-host>:1984`.
+- RTSP stream registration is handled by the Print Lasso service on printer save
+  (users do not need to edit go2rtc YAML stream entries manually).
 
 Override example:
 ```bash

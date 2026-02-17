@@ -15,6 +15,9 @@ class Settings(BaseSettings):
     mdns_instance_name: str = "Print Lasso Service"
     mdns_api_path: str = "/api/v1"
     mdns_advertise_host: str = ""
+    go2rtc_enabled: bool = True
+    go2rtc_base_url: str = "http://127.0.0.1:1984"
+    go2rtc_timeout_seconds: float = 2.0
 
     @property
     def database_url(self) -> str:

@@ -7,6 +7,7 @@ from sqlmodel import Session, select
 
 from app.db.engine import get_session
 from app.discovery.ssdp import discover_bambu_printers
+from app.integrations.go2rtc import ensure_camera_stream, remove_camera_streams
 from app.models.printer import Printer, PrinterCreate, PrinterDelete, PrinterRead, PrinterUpdate
 
 router = APIRouter()
@@ -34,6 +35,7 @@ def add_printer(payload: PrinterCreate, session: Session = Depends(get_session))
     except IntegrityError as exc:
         session.rollback()
         raise HTTPException(status_code=409, detail="Printer with this serial number already exists") from exc
+    ensure_camera_stream(serial_number=printer.serial_number, camera_url=printer.camera_url)
     return printer
 
 
@@ -43,6 +45,7 @@ def edit_printer(payload: PrinterUpdate, session: Session = Depends(get_session)
     if not printer:
         raise HTTPException(status_code=404, detail="Printer not found")
 
+    old_camera_url = printer.camera_url
     update_data = payload.model_dump(exclude_unset=True)
     update_data.pop("serial_number", None)
     for field_name, value in update_data.items():
@@ -52,6 +55,9 @@ def edit_printer(payload: PrinterUpdate, session: Session = Depends(get_session)
     session.add(printer)
     session.commit()
     session.refresh(printer)
+    if old_camera_url != printer.camera_url:
+        remove_camera_streams(serial_number=printer.serial_number, camera_url=old_camera_url)
+    ensure_camera_stream(serial_number=printer.serial_number, camera_url=printer.camera_url)
     return printer
 
 
@@ -61,6 +67,7 @@ def remove_printer(payload: PrinterDelete, session: Session = Depends(get_sessio
     if not printer:
         raise HTTPException(status_code=404, detail="Printer not found")
 
+    remove_camera_streams(serial_number=printer.serial_number, camera_url=printer.camera_url)
     session.delete(printer)
     session.commit()
     return {"status": "deleted", "serial_number": payload.serial_number}

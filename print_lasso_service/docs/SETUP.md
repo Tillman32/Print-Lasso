@@ -32,6 +32,8 @@ The Flutter printers camera view uses go2rtc to relay Bambu RTSP feeds to MJPEG.
 By default it targets `http://<active-service-host>:1984`.
 The bundled `go2rtc.yaml` sets `api.origin: "*"` so browser clients can load relay
 streams from a different origin (for example `http://localhost:58404`).
+When a printer is added or updated with an RTSP camera URL, the service
+automatically upserts matching go2rtc streams via the go2rtc HTTP API.
 
 For LAN SSDP printer discovery on Linux hosts, use host networking:
 ```bash

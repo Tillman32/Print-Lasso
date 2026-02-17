@@ -74,3 +74,50 @@ def test_printer_crud_flow() -> None:
 
         missing_resp = startup_client.get("/api/v1/printer/view", params={"serial_number": "SN-1000"})
         assert missing_resp.status_code == 404
+
+
+def test_camera_rtsp_sync_hooks(monkeypatch) -> None:
+    events: list[tuple[str, str, str | None]] = []
+
+    monkeypatch.setattr(
+        "app.api.handlers.ensure_camera_stream",
+        lambda serial_number, camera_url: events.append(("ensure", serial_number, camera_url)),
+    )
+    monkeypatch.setattr(
+        "app.api.handlers.remove_camera_streams",
+        lambda serial_number, camera_url: events.append(("remove", serial_number, camera_url)),
+    )
+
+    with TestClient(app) as startup_client:
+        create_resp = startup_client.post(
+            "/api/v1/printer/add",
+            json={
+                "serial_number": "SN-RTSP-1",
+                "name": "RTSP Printer",
+                "camera_url": "rtsps://bblp:code@192.168.1.67:322/streaming/live/1",
+            },
+        )
+        assert create_resp.status_code == 201
+
+        edit_resp = startup_client.put(
+            "/api/v1/printer/edit",
+            json={
+                "serial_number": "SN-RTSP-1",
+                "camera_url": "rtsps://bblp:new@192.168.1.67:322/streaming/live/1",
+            },
+        )
+        assert edit_resp.status_code == 200
+
+        delete_resp = startup_client.request(
+            "DELETE",
+            "/api/v1/printer/remove",
+            json={"serial_number": "SN-RTSP-1"},
+        )
+        assert delete_resp.status_code == 200
+
+    assert events == [
+        ("ensure", "SN-RTSP-1", "rtsps://bblp:code@192.168.1.67:322/streaming/live/1"),
+        ("remove", "SN-RTSP-1", "rtsps://bblp:code@192.168.1.67:322/streaming/live/1"),
+        ("ensure", "SN-RTSP-1", "rtsps://bblp:new@192.168.1.67:322/streaming/live/1"),
+        ("remove", "SN-RTSP-1", "rtsps://bblp:new@192.168.1.67:322/streaming/live/1"),
+    ]

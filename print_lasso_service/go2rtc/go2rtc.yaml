@@ -9,4 +9,6 @@ rtsp:
 webrtc:
   listen: ":8555"
 
-streams: {}
+streams:
+  testcam:
+    - rtsps://bblp:27280836@192.168.1.67:322/streaming/live/1
